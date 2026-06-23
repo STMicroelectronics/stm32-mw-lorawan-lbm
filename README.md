@@ -1,6 +1,6 @@
 # Middleware LoRaWAN-LBM MCU Component
 
-![latest tag](https://img.shields.io/github/v/tag/STMicroelectronics/stm32-mw-lorawan-lbm.svg?color=brightgreen)
+![tag](https://img.shields.io/badge/tag-v1.0.1-brightgreen.svg)
 
 ## Overview
 

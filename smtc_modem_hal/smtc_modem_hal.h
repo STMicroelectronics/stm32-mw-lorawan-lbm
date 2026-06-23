@@ -60,11 +60,9 @@ extern "C" {
 
 #include "systime.h"
 #include "radio_driver.h"
-#include "adc_if.h"
 #include "smtc_modem_utilities.h"
 #include "ral.h"
 
-#include "rng.h"
 /*
  * -----------------------------------------------------------------------------
  * --- PUBLIC MACROS -----------------------------------------------------------

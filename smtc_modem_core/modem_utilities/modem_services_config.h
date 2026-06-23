@@ -122,7 +122,7 @@ typedef struct modem_service_config_s
 
 } modem_service_config_t;
 
-static modem_service_config_t modem_service_config[] = {
+static __attribute__((unused)) modem_service_config_t modem_service_config[] = {
     { .service_id = 0, .stack_id = 0, .callbacks_init_service = lorawan_certification_services_init },
 #ifdef RELAY
     { .service_id = 0, .stack_id = 0, .callbacks_init_service = lorawan_relay_rx_services_init },
