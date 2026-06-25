@@ -59,7 +59,7 @@
 #include "lorawan_api.h"
 #include "modem_event_utilities.h"
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 /*
  * -----------------------------------------------------------------------------
  * --- PRIVATE MACROS-----------------------------------------------------------
@@ -370,6 +370,6 @@ static uint8_t lorawan_class_b_management_service_downlink_handler( lr1_stack_ma
     return MODEM_DOWNLINK_CONSUMED;
 }
 
-#endif //defined( ADD_CLASS_B )
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 
 /* --- EOF ------------------------------------------------------------------ */

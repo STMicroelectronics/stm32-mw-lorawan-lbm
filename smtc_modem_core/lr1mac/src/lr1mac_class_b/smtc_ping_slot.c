@@ -62,7 +62,7 @@
 #include "smtc_secure_element.h"
 #include "smtc_modem_crypto.h"
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 /*
  * -----------------------------------------------------------------------------
  * --- PRIVATE MACROS-----------------------------------------------------------
@@ -245,21 +245,11 @@ void smtc_ping_slot_init_after_beacon( smtc_ping_slot_t* ping_slot_obj, uint32_t
             ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_period =
                 1 << ( 5 + ping_slot_obj->rx_session_param[i]->ping_slot_periodicity );
 
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
             ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_offset_time =
                 smtc_ping_slot_compute_first_slot( beacon_timestamp, beacon_reserved_ms, beacon_epoch_time,
                                                    ping_slot_obj->rx_session_param[i]->dev_addr,
                                                    ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_period,
                                                    ping_slot_obj->lr1_mac->stack_id );
-#else
-            ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_offset_time_100us =
-                smtc_ping_slot_compute_first_slot( beacon_timestamp, beacon_reserved_ms, beacon_epoch_time,
-                                                   ping_slot_obj->rx_session_param[i]->dev_addr,
-                                                   ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_period,
-                                                   ping_slot_obj->lr1_mac->stack_id );
-            ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_offset_time =
-                ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_offset_time_100us / 10;
-#endif // RELAY
         }
     }
 }
@@ -274,15 +264,6 @@ void smtc_ping_slot_start( smtc_ping_slot_t* ping_slot_obj )
     {
         SMTC_MODEM_HAL_PANIC( "ping_slot_obj bad initialization \n" );
     }
-
-#ifdef RELAY
-    if( lr1mac_core_is_time_valid( ping_slot_obj->lr1_mac ) == false )
-    {
-        smtc_ping_slot_stop( ping_slot_obj );
-        SMTC_MODEM_HAL_TRACE_WARNING( "Ping Slot not started, time sync is not valid\n" );
-        return;
-    }
-#endif 
 
     if( ping_slot_obj->lr1_mac->ping_slot_info_user_req != USER_MAC_REQ_ACKED )
     {
@@ -453,10 +434,6 @@ void smtc_ping_slot_start( smtc_ping_slot_t* ping_slot_obj )
                                                &rx_offset_ms_tmp );
         rp_task.start_time_ms = RX_SESSION_PARAM_CURRENT->ping_slot_parameters.ping_offset_time + rx_offset_ms_tmp +
                                 ( RX_BEACON_TIMESTAMP_ERROR >> 1 );
-#ifdef RELAY
-        rp_task.start_time_100us = RX_SESSION_PARAM_CURRENT->ping_slot_parameters.ping_offset_time_100us +
-                                   rx_offset_ms_tmp * 10 + ( RX_BEACON_TIMESTAMP_ERROR >> 1 ) * 10;
-#endif
 
         rp_task.duration_time_ms = smtc_ping_slot_get_duration_timeout_ms(
             ping_slot_obj, RX_SESSION_PARAM_CURRENT->rx_window_symb, RX_SESSION_PARAM_CURRENT->rx_data_rate );
@@ -486,8 +463,7 @@ void smtc_ping_slot_start( smtc_ping_slot_t* ping_slot_obj )
                                                    RX_SESSION_PARAM_CURRENT->ping_slot_parameters.ping_offset_time,
                                                    &ping_slot_seconds_since_epoch, &ping_slot_fractional_second );
 
-        SMTC_MODEM_HAL_TRACE_PRINTF( "ping_slot_obj(%u) devaddr:%x START at %u (%u.%u), freq:%u, dr:%u, PingNb:%u\n",
-                                     ping_slot_obj->lr1_mac->stack_id, RX_SESSION_PARAM_CURRENT->dev_addr,
+        MW_LOG( TS_ON, VLEVEL_M, "START at %u (%u.%u), freq:%u, dr:%u, PingNb:%u\n",
                                      RX_SESSION_PARAM_CURRENT->ping_slot_parameters.ping_offset_time,
                                      ping_slot_seconds_since_epoch, ping_slot_fractional_second, ping_slot_freq,
                                      ping_slot_dr, RX_SESSION_PARAM_CURRENT->ping_slot_parameters.ping_number );
@@ -558,8 +534,9 @@ void smtc_ping_slot_mac_rp_callback( smtc_ping_slot_t* ping_slot_obj )
         {
             ping_slot_obj->last_toa = 0;
 
-            // save rssi and snr
             RX_DOWN_DATA.rx_metadata.timestamp_ms = tcurrent_ms;
+
+            // save rssi and snr
             if( ping_slot_obj->rp->radio_params[from_hook_id].pkt_type == RAL_PKT_TYPE_LORA )
             {
                 RX_DOWN_DATA.rx_metadata.rx_snr =
@@ -578,11 +555,16 @@ void smtc_ping_slot_mac_rp_callback( smtc_ping_slot_t* ping_slot_obj )
                 SMTC_MODEM_HAL_PANIC( );
             }
 
-            SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "payload size receive = %u, snr = %u , rssi = %u\n",
+            RX_DOWN_DATA.rx_payload_size = ( uint8_t ) ping_slot_obj->rp->rx_payload_size[from_hook_id];
+
+            MW_LOG( TS_ON, VLEVEL_H, "payload size receive = %u, snr = %u , rssi = %u\n",
                                                RX_DOWN_DATA.rx_payload_size, RX_DOWN_DATA.rx_metadata.rx_snr,
                                                RX_DOWN_DATA.rx_metadata.rx_rssi );
 
-            SMTC_MODEM_HAL_TRACE_ARRAY_DEBUG( "RxB Payload", RX_DOWN_DATA.rx_payload, RX_DOWN_DATA.rx_payload_size );
+            MW_LOG( TS_ON, VLEVEL_M, "RxB Payload size %u\r\n", RX_DOWN_DATA.rx_payload_size );
+            for(int i=0; i<RX_DOWN_DATA.rx_payload_size;i++){
+              MW_LOG( TS_OFF, VLEVEL_H, " %02X", RX_DOWN_DATA.rx_payload[i]);
+            }
 
             status = smtc_ping_slot_mac_downlink_check( ping_slot_obj );
         }
@@ -591,7 +573,7 @@ void smtc_ping_slot_mac_rp_callback( smtc_ping_slot_t* ping_slot_obj )
         {
             ping_slot_obj->valid_rx_packet = smtc_ping_slot_mac_rx_frame_decode( ping_slot_obj );
 
-            SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "Receive a downlink RXB for Hook Id = %u\n", from_hook_id );
+            MW_LOG( TS_ON, VLEVEL_M, "Receive a downlink RXB\r\n" );
 
             if( ping_slot_obj->valid_rx_packet == USER_RX_PACKET )
             {
@@ -614,26 +596,22 @@ void smtc_ping_slot_mac_rp_callback( smtc_ping_slot_t* ping_slot_obj )
         break;
     }
     case RP_STATUS_RX_CRC_ERROR:
-        SMTC_MODEM_HAL_TRACE_PRINTF( "lr1mac RxB CRC ERROR\n" );
+      MW_LOG( TS_ON, VLEVEL_M, "lr1mac RxB CRC ERROR\n" );
         break;
 
     case RP_STATUS_RX_TIMEOUT:
-        SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "lr1mac RxB Timeout \n" );
+      MW_LOG( TS_ON, VLEVEL_M, "lr1mac RxB Timeout \n" );
         break;
     case RP_STATUS_TASK_ABORTED:
-        SMTC_MODEM_HAL_TRACE_PRINTF( "lr1mac RxB aborted by the radioplanner \n" );
+      MW_LOG( TS_ON, VLEVEL_M, "lr1mac RxB aborted by the radioplanner \n" );
         break;
     default:
-        SMTC_MODEM_HAL_TRACE_PRINTF( "lr1mac RxB receive It RADIO error %u\n", ping_slot_obj->rp_planner_status );
+      MW_LOG( TS_ON, VLEVEL_M, "lr1mac RxB receive It RADIO error %u\n", ping_slot_obj->rp_planner_status );
         break;
     }
 }
 
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
 uint32_t smtc_ping_slot_compute_first_slot( uint32_t beacon_time_received_ms, uint32_t beacon_reserved_ms,
-#else
-uint32_t smtc_ping_slot_compute_first_slot( uint32_t beacon_time_received_100us, uint32_t beacon_reserved_ms,
-#endif
                                             uint32_t beacon_epoch_time, uint32_t dev_addr, uint16_t ping_period,
                                             uint8_t stack_id )
 {
@@ -643,13 +621,9 @@ uint32_t smtc_ping_slot_compute_first_slot( uint32_t beacon_time_received_100us,
     {
         SMTC_MODEM_HAL_PANIC( "Crypto error while getting class B rand number for ping slot offset computation" );
     }
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
+
     uint32_t ret =
         ( beacon_time_received_ms + beacon_reserved_ms + ( ( rand[0] + ( rand[1] << 8 ) ) % ping_period ) * 30 );
-#else
-    uint32_t ret = ( beacon_time_received_100us + 10 * beacon_reserved_ms +
-                     ( ( rand[0] + ( rand[1] << 8 ) ) % ping_period ) * 300 );
-#endif
     return ret;
 }
 
@@ -837,10 +811,6 @@ static void smtc_ping_slot_compute_next_ping_offset_time( smtc_ping_slot_t* ping
                 ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_number--;
                 ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_offset_time +=
                     ( ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_period * 30 );
-#ifdef RELAY
-                ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_offset_time_100us +=
-                    ( ping_slot_obj->rx_session_param[i]->ping_slot_parameters.ping_period * 300 );
-#endif
             }
         }
     }
@@ -862,8 +832,7 @@ static void smtc_ping_slot_search_closest_ping_offset_time( smtc_ping_slot_t* pi
                 {
                     ping_slot_obj->rx_session_index = i;
 
-                    SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "Ping Slot session %u enabled", i );
-                    SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "--> offset %u, init\n",
+                    SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "Ping Slot session %u enabled --> offset %u, init\n", i,
                                                        RX_SESSION_PARAM[i]->ping_slot_parameters.ping_offset_time );
                     break;
                 }
@@ -889,8 +858,7 @@ static void smtc_ping_slot_search_closest_ping_offset_time( smtc_ping_slot_t* pi
         // Search Ping Slot for each enabled session
         if( RX_SESSION_PARAM[i]->enabled == true )
         {
-            SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "Ping Slot session %u enabled", i );
-            SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "--> offset %u, ",
+            SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( "Ping Slot session %u enabled --> offset %u, ", i,
                                                RX_SESSION_PARAM[i]->ping_slot_parameters.ping_offset_time );
 
             // Ignore session if all ping number were used
@@ -1013,6 +981,7 @@ static rx_packet_type_t smtc_ping_slot_mac_rx_frame_decode( smtc_ping_slot_t* pi
     uint32_t         mic_in;
     uint8_t          rx_ftype;
     uint8_t          rx_major;
+    bool             tx_ack_bit;
 
     status += lr1mac_rx_payload_min_size_check( RX_DOWN_DATA.rx_payload_size );
     status += lr1mac_rx_payload_max_size_check( ping_slot_obj->lr1_mac, RX_DOWN_DATA.rx_payload_size,
@@ -1023,7 +992,7 @@ static rx_packet_type_t smtc_ping_slot_mac_rx_frame_decode( smtc_ping_slot_t* pi
     }
 
     status +=
-        lr1mac_rx_mhdr_extract( RX_DOWN_DATA.rx_payload, &rx_ftype, &rx_major, &RX_DOWN_DATA.rx_metadata.tx_ack_bit );
+        lr1mac_rx_mhdr_extract( RX_DOWN_DATA.rx_payload, &rx_ftype, &rx_major, &tx_ack_bit );
     if( status != OKLORAWAN )
     {
         return NO_MORE_VALID_RX_PACKET;
@@ -1031,9 +1000,9 @@ static rx_packet_type_t smtc_ping_slot_mac_rx_frame_decode( smtc_ping_slot_t* pi
 
     if( ping_slot_obj->rx_session_index != RX_SESSION_UNICAST )
     {
-        if( ( RX_DOWN_DATA.rx_metadata.tx_ack_bit == true ) || ( rx_ftype == CONF_DATA_UP ) )
+        if( tx_ack_bit == true )
         {
-            RX_DOWN_DATA.rx_metadata.tx_ack_bit = false;
+            tx_ack_bit = false;
             return NO_MORE_VALID_RX_PACKET;
         }
     }
@@ -1171,6 +1140,7 @@ static rx_packet_type_t smtc_ping_slot_mac_rx_frame_decode( smtc_ping_slot_t* pi
     {
         ping_slot_obj->rx_ftype = rx_ftype;
         ping_slot_obj->rx_major = rx_major;
+        RX_DOWN_DATA.rx_metadata.tx_ack_bit = tx_ack_bit;
     }
 
     SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG( " RxB rx_packet_type = %u \n", rx_packet_type );
@@ -1244,6 +1214,10 @@ static void ping_slot_mac_rx_lora_launch_callback_for_rp( void* rp_void )
 {
     radio_planner_t* rp = ( radio_planner_t* ) rp_void;
     uint8_t          id = rp->radio_task_id;
+
+    MW_LOG( TS_ON, VLEVEL_M, " RXB LoRa at %u ms freq:%u, SF %u, rx timeout %d ms\r\n",
+           (rp->tasks[id].start_time_ms - SysTimeToMs(SysTimeGet())), rp->radio_params[id].rx.lora.rf_freq_in_hz, rp->radio_params[id].rx.lora.mod_params.sf,
+           rp->tasks[id].duration_time_ms);
     SMTC_MODEM_HAL_PANIC_ON_FAILURE( ralf_setup_lora( rp->radio, &rp->radio_params[id].rx.lora ) == RAL_STATUS_OK );
     SMTC_MODEM_HAL_PANIC_ON_FAILURE(
         ral_set_dio_irq_params( &( rp->radio->ral ), RAL_IRQ_RX_DONE | RAL_IRQ_RX_TIMEOUT | RAL_IRQ_RX_HDR_ERROR |
@@ -1258,6 +1232,6 @@ static void ping_slot_mac_rx_lora_launch_callback_for_rp( void* rp_void )
                                      RAL_STATUS_OK );
     rp_stats_set_rx_timestamp( &rp->stats, SysTimeToMs(SysTimeGet()));
 }
-#endif //defined( ADD_CLASS_B )
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 
 /* --- EOF ------------------------------------------------------------------ */

@@ -54,7 +54,7 @@
 #include "smtc_secure_element.h"
 #include "lr1mac_utilities.h"
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 /*
  * -----------------------------------------------------------------------------
  * --- PRIVATE FUNCTIONS DECLARATION -------------------------------------------
@@ -228,14 +228,7 @@ static bool is_valid_beacon( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t timesta
 #define TIME_MS_TO_BEACON_SYMB( N ) \
     ( MIN( MAX( ( N / BEACON_SYMB_DURATION_MS( ) ), MIN_BEACON_WINDOW_SYMB ), MAX_BEACON_WINDOW_SYMB( ) ) )
 
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
 #define DPLL_PHASE_MS( ) lr1_beacon_obj->dpll_phase
-#else
-/**
- * @brief compute the dpll phase with a resultion of 1ms
- */
-#define DPLL_PHASE_MS( ) lr1_beacon_obj->dpll_phase_100us / 10
-#endif
 
 /*
  * -----------------------------------------------------------------------------
@@ -257,13 +250,9 @@ void smtc_beacon_sniff_init( smtc_lr1_beacon_t* lr1_beacon_obj, smtc_ping_slot_t
     lr1_beacon_obj->beacon_statistics.beacon_state = BEACON_UNLOCK;
     lr1_beacon_obj->push_callback                  = push_callback;
     lr1_beacon_obj->push_context                   = &( lr1_mac->rx_down_data );
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
     lr1_beacon_obj->dpll_frequency                 = BEACON_PERIOD_MS;
     lr1_beacon_obj->listen_beacon_rate             = NUMBER_OF_STACKS * DEFAULT_LISTEN_BEACON_RATE;
-#else
-    lr1_beacon_obj->dpll_frequency_100us           = BEACON_PERIOD_MS * 10;
-    lr1_beacon_obj->listen_beacon_rate             = NUMBER_OF_STACKS;
-#endif
+
     rp_release_hook( lr1_beacon_obj->rp, lr1_beacon_obj->beacon_sniff_id_rp );
     rp_hook_init( lr1_beacon_obj->rp, lr1_beacon_obj->beacon_sniff_id_rp,
                   ( void ( * )( void* ) )( smtc_beacon_sniff_rp_callback ),
@@ -311,7 +300,7 @@ smtc_class_b_beacon_t smtc_beacon_sniff_start( smtc_lr1_beacon_t* lr1_beacon_obj
     SMTC_MODEM_HAL_PANIC_ON_FAILURE( beacon_id == lr1_beacon_obj->beacon_sniff_id_rp );
     if( lr1_beacon_obj->enabled == false )
     {
-        SMTC_MODEM_HAL_TRACE_PRINTF( "class_b_obj disabled\n" );
+        MW_LOG( TS_ON, VLEVEL_M, "class_b_obj disabled\n" );
         return SMTC_CLASS_B_BEACON_NOT_ENABLED;
     }
 
@@ -319,7 +308,7 @@ smtc_class_b_beacon_t smtc_beacon_sniff_start( smtc_lr1_beacon_t* lr1_beacon_obj
     if( lr1mac_core_convert_rtc_to_gps_epoch_time( lr1_beacon_obj->lr1_mac, rtc, &seconds_since_epoch,
                                                    &fractional_second ) == false )
     {
-        SMTC_MODEM_HAL_TRACE_PRINTF( "beacon sniff not started, time is not sync\n" );
+        MW_LOG( TS_ON, VLEVEL_M, "beacon sniff not started, time is not sync\n" );
         return SMTC_CLASS_B_BEACON_NOT_TIME_SYNC;
     }
     // init the digital pll phase to the closest gps epoch time multiple of BEACON_PERIOD_S. time is provided by the
@@ -330,28 +319,19 @@ smtc_class_b_beacon_t smtc_beacon_sniff_start( smtc_lr1_beacon_t* lr1_beacon_obj
     pll_phase_temp = 1000 * ( BEACON_PERIOD_S - ( seconds_since_epoch % BEACON_PERIOD_S ) );
     pll_phase_temp += rtc;
     pll_phase_temp -= fractional_second;
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
     lr1_beacon_obj->dpll_phase             = pll_phase_temp;
-#else
-    lr1_beacon_obj->dpll_phase_100us       = pll_phase_temp * 10;  // dpll phase in 100us resolution
-#endif
     lr1_beacon_obj->beacon_open_rx_nb_symb = MAX_BEACON_WINDOW_SYMB( );
     lr1_beacon_obj->started                = true;
     lr1mac_core_convert_rtc_to_gps_epoch_time( lr1_beacon_obj->lr1_mac, pll_phase_temp, &seconds_since_epoch,
                                                &fractional_second );
     // store the target gps epoch time (format gps epoch time) to lr1_beacon_obj->beacon_epoch_time
     lr1_beacon_obj->beacon_epoch_time = seconds_since_epoch;
-    SMTC_MODEM_HAL_TRACE_PRINTF( "seconds_since_epoch %u, fractional_second %u ms\n", seconds_since_epoch,
+    MW_LOG( TS_ON, VLEVEL_H, "seconds_since_epoch %u, fractional_second %u ms\n", seconds_since_epoch,
                                  fractional_second );
     // launch beacon radio sniff
     beacon_rp_request( lr1_beacon_obj );
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
-    SMTC_MODEM_HAL_TRACE_PRINTF( "Next beacon in %u ms at %u\n", lr1_beacon_obj->dpll_phase - rtc,
+    MW_LOG( TS_ON, VLEVEL_M, "Next beacon in %u ms at %u\n", lr1_beacon_obj->dpll_phase - rtc,
                                  lr1_beacon_obj->dpll_phase );
-#else
-    SMTC_MODEM_HAL_TRACE_PRINTF( "Next beacon in %u ms at %u\n", DPLL_PHASE_MS( ) - rtc,
-                                 lr1_beacon_obj->dpll_phase_100us );
-#endif
 
     return SMTC_CLASS_B_BEACON_OK;
 }
@@ -423,6 +403,10 @@ void smtc_beacon_sniff_launch_callback_for_rp( void* rp_void )
     // is already schedule
     rp->radio_params[id].rx.lora.rf_freq_in_hz = GET_BEACON_FREQUENCY( );
 
+    MW_LOG( TS_ON, VLEVEL_M, " RX Beacon LoRa at %u ms freq:%u, DR %u, rx timeout %d ms\r\n",
+           (rp->tasks[id].start_time_ms - SysTimeToMs(SysTimeGet())), GET_BEACON_FREQUENCY( ), BEACON_DATA_RATE( ),
+           rp->tasks[id].duration_time_ms);
+
     SMTC_MODEM_HAL_PANIC_ON_FAILURE( ralf_setup_lora( rp->radio, &rp->radio_params[id].rx.lora ) == RAL_STATUS_OK );
     SMTC_MODEM_HAL_PANIC_ON_FAILURE(
         ral_set_dio_irq_params( &( rp->radio->ral ), RAL_IRQ_RX_DONE | RAL_IRQ_RX_TIMEOUT | RAL_IRQ_RX_HDR_ERROR |
@@ -449,17 +433,9 @@ void smtc_beacon_sniff_rp_callback( smtc_lr1_beacon_t* lr1_beacon_obj )
     uint32_t    beacon_epoch_time = 0;
     // assuming that the radio hw latency between the end of the packet and the timestamp of the rx packet is about
     // 1/2 symbol
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
     uint32_t timestamp = lr1_beacon_obj->rp->irq_timestamp_ms[lr1_beacon_obj->beacon_sniff_id_rp] -
                          ( ( BEACON_SYMB_DURATION_MS( ) ) >> 1 );
 
-    SMTC_MODEM_HAL_TRACE_PRINTF( " beacon_timestamp = %u ms\n", timestamp );
-#else
-    uint32_t timestamp = lr1_beacon_obj->rp->irq_timestamp_100us[lr1_beacon_obj->beacon_sniff_id_rp] -
-                         ( ( BEACON_SYMB_DURATION_US( ) >> 1 ) / 100 );
-
-    SMTC_MODEM_HAL_TRACE_PRINTF( " beacon_timestamp_us = %u us\n", timestamp * 100 );
-#endif
 
     lr1_beacon_obj->is_valid_beacon = false;
     if( rp_status == RP_STATUS_RX_PACKET )
@@ -473,11 +449,7 @@ void smtc_beacon_sniff_rp_callback( smtc_lr1_beacon_t* lr1_beacon_obj )
     update_beacon_pll( lr1_beacon_obj, timestamp );
     update_beacon_state( lr1_beacon_obj );
 
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
     compute_beacon_metadata( lr1_beacon_obj, timestamp, beacon_epoch_time );
-#else
-    compute_beacon_metadata( lr1_beacon_obj, timestamp / 10, beacon_epoch_time );
-#endif
     update_beacon_rx_nb_symb( lr1_beacon_obj, DPLL_PHASE_MS( ) );
     beacon_debug_print( lr1_beacon_obj );
 
@@ -486,17 +458,9 @@ void smtc_beacon_sniff_rp_callback( smtc_lr1_beacon_t* lr1_beacon_obj )
     if( ( lr1_beacon_obj->beacon_statistics.beacon_state == BEACON_LOCK ) &&
         ( lr1_beacon_obj->lr1_mac->ping_slot_info_user_req == USER_MAC_REQ_ACKED ) )
     {
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
         uint32_t current_beacon_phase = ( lr1_beacon_obj->dpll_phase - lr1_beacon_obj->dpll_frequency );
         smtc_ping_slot_init_after_beacon( lr1_beacon_obj->ping_slot_obj, current_beacon_phase, DPLL_PHASE_MS( ),
                                           BEACON_RESERVED_MS, BEACON_GUARD_MS, lr1_beacon_obj->beacon_epoch_time );
-#else
-        uint32_t current_beacon_phase_100us =
-            ( lr1_beacon_obj->dpll_phase_100us - lr1_beacon_obj->dpll_frequency_100us );
-        smtc_ping_slot_init_after_beacon( lr1_beacon_obj->ping_slot_obj, current_beacon_phase_100us, DPLL_PHASE_MS( ),
-                                          BEACON_RESERVED_MS, BEACON_GUARD_MS, lr1_beacon_obj->beacon_epoch_time );
-#endif										  
-
 
         smtc_ping_slot_start( lr1_beacon_obj->ping_slot_obj );
     }
@@ -707,7 +671,6 @@ static void compute_beacon_metadata( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t
     }
 }
 
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
 static void update_beacon_pll( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t timestamp )
 {
     if( lr1_beacon_obj->is_valid_beacon == true )
@@ -747,48 +710,6 @@ static void update_beacon_pll( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t times
                                                    ? ( 10 * SIGN( lr1_beacon_obj->dpll_error ) )
                                                    : lr1_beacon_obj->dpll_error );
 }
-#else
-static void update_beacon_pll( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t timestamp )
-{
-    if( lr1_beacon_obj->is_valid_beacon == true )
-    {
-        if( lr1_beacon_obj->beacon_statistics.beacon_state == BEACON_UNLOCK )
-        {
-            SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG(
-                "time error on first beacon = %d (100us resolution)  \n",
-                timestamp - lr1_beacon_obj->dpll_phase_100us - 10 * lr1_beacon_obj->beacon_toa );
-            lr1_beacon_obj->dpll_frequency_100us    = BEACON_PERIOD_MS * 10;
-            lr1_beacon_obj->dpll_error              = 0;
-            lr1_beacon_obj->dpll_error_wo_filtering = 0;
-            lr1_beacon_obj->dpll_error_sum          = 0;
-            lr1_beacon_obj->dpll_phase_100us        = timestamp - 10 * lr1_beacon_obj->beacon_toa;
-        }
-        if( lr1_beacon_obj->beacon_statistics.beacon_state == BEACON_LOCK )
-        {
-            lr1_beacon_obj->dpll_error_wo_filtering =
-                timestamp - lr1_beacon_obj->dpll_phase_100us - ( 10 * lr1_beacon_obj->beacon_toa );
-            lr1_beacon_obj->dpll_error =
-                ( BEACON_PLL_PHASE_GAIN_MUL * lr1_beacon_obj->dpll_error + lr1_beacon_obj->dpll_error_wo_filtering ) /
-                BEACON_PLL_PHASE_GAIN_DIV;
-            lr1_beacon_obj->dpll_error_sum += lr1_beacon_obj->dpll_error;
-            if( lr1_beacon_obj->dpll_error_sum > BEACON_PLL_FREQUENCY_GAIN )
-            {
-                lr1_beacon_obj->dpll_frequency_100us++;
-                lr1_beacon_obj->dpll_error_sum = 0;
-            }
-            if( lr1_beacon_obj->dpll_error_sum < ( BEACON_PLL_FREQUENCY_GAIN * ( -1 ) ) )
-            {
-                lr1_beacon_obj->dpll_frequency_100us--;
-                lr1_beacon_obj->dpll_error_sum = 0;
-            }
-        }
-    }
-    lr1_beacon_obj->dpll_phase_100us +=
-        ( lr1_beacon_obj->dpll_frequency_100us ) + ( ( ABS( lr1_beacon_obj->dpll_error ) > 100 )
-                                                         ? ( 100 * SIGN( lr1_beacon_obj->dpll_error ) )
-                                                         : lr1_beacon_obj->dpll_error );
-}
-#endif
 static void update_beacon_state( smtc_lr1_beacon_t* lr1_beacon_obj )
 {
     if( ( lr1_beacon_obj->is_valid_beacon == false ) &&
@@ -816,16 +737,16 @@ static void beacon_debug_print( smtc_lr1_beacon_t* lr1_beacon_obj )
 {
     if( lr1_beacon_obj->is_valid_beacon == true )
     {
-        SMTC_MODEM_HAL_TRACE_PRINTF( "beacon stack %u\n", lr1_beacon_obj->lr1_mac->stack_id );
-        SMTC_MODEM_HAL_TRACE_ARRAY( "Beacon Payload ", lr1_beacon_obj->beacon_buffer,
+      MW_LOG( TS_ON, VLEVEL_H,   "beacon stack %u\n", lr1_beacon_obj->lr1_mac->stack_id );
+      MW_LOG( TS_ON, VLEVEL_M,  "Beacon Payload ", lr1_beacon_obj->beacon_buffer,
                                     lr1_beacon_obj->beacon_buffer_length );
     }
 
-    SMTC_MODEM_HAL_TRACE_PRINTF( "--> PLL INFO ppl_phase =%u, pll_error= %u  pll_frequency = %u \n",
-                                 lr1_beacon_obj->dpll_phase, lr1_beacon_obj->dpll_error,
+    MW_LOG( TS_ON, VLEVEL_M,  "--> PLL INFO ppl_phase =%u, pll_error= %u  pll_frequency = %u \n",
+                      DPLL_PHASE_MS( ), lr1_beacon_obj->dpll_error,
                                  lr1_beacon_obj->dpll_frequency );
-    SMTC_MODEM_HAL_TRACE_PRINTF( "\n********************\n" );
-    SMTC_MODEM_HAL_TRACE_PRINTF(
+    MW_LOG( TS_ON, VLEVEL_M,   "\n********************\n" );
+    MW_LOG( TS_ON, VLEVEL_M,
         "-->BEACON STATUS \n received = %u\n missed = %u\n received_consecutively = %u\n lost_consecutively "
         "=%u\n four_last_beacon_rx_statistic = %u\n"
         " next beacon rx_nb_symb = %u\n",
@@ -877,14 +798,8 @@ static bool is_valid_beacon( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t timesta
     uint32_t seconds_since_epoch;
     uint32_t fractional_second;
     uint32_t beacon_epoch_time = smtc_decode_beacon_epoch_time( lr1_beacon_obj->beacon_buffer, GET_BEACON_SF( ) );
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
     bool     status            = lr1mac_core_convert_rtc_to_gps_epoch_time(
         lr1_beacon_obj->lr1_mac, timestamp - lr1_beacon_obj->beacon_toa, &seconds_since_epoch, &fractional_second );
-#else
-    bool     status =
-        lr1mac_core_convert_rtc_to_gps_epoch_time( lr1_beacon_obj->lr1_mac, timestamp / 10 - lr1_beacon_obj->beacon_toa,
-                                                   &seconds_since_epoch, &fractional_second );
-#endif
     if( status == true )
     {
         int32_t check_time = ( beacon_epoch_time - seconds_since_epoch ) * 1000 - fractional_second;
@@ -904,4 +819,4 @@ static bool is_valid_beacon( smtc_lr1_beacon_t* lr1_beacon_obj, uint32_t timesta
     }
     return true;  // case receive a beacon but device no more synchronized
 }
-#endif  //defined( ADD_CLASS_B )
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */

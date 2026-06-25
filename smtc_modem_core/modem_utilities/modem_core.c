@@ -97,11 +97,11 @@
 
 #define FIFO_LORAWAN_SIZE 512
 #define UNUSED_VALUE 0xff
-#ifdef ADD_CLASS_B
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 #define NUMBER_OF_LORAWAN_MANAGEMENT_TASKS 5
 #else
 #define NUMBER_OF_LORAWAN_MANAGEMENT_TASKS 4
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 0 */
 
 /*
  * -----------------------------------------------------------------------------
@@ -219,13 +219,13 @@ void modem_context_init_light( void ( *callback )( void ), radio_planner_t* rp )
                                          &callback_on_update_temp, &context_callback_tmp );
     modem_supervisor_init_callback( CID_REQ_TASK, callback_on_launch_temp, callback_on_update_temp,
                                     context_callback_tmp );
-#ifdef ADD_CLASS_B
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     lorawan_class_b_management_services_init( ( uint8_t* ) UNUSED_VALUE, UNUSED_VALUE,
                                               &downlink_services_callback[index_tmp++], &callback_on_launch_temp,
                                               &callback_on_update_temp, &context_callback_tmp );
     modem_supervisor_init_callback( CLASS_B_MANAGEMENT_TASK, callback_on_launch_temp, callback_on_update_temp,
                                     context_callback_tmp );
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 
     task_id_t task_id_tmp;
     uint8_t   cpt_of_services_init = SERVICE_ID0_TASK;

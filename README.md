@@ -1,6 +1,6 @@
 # Middleware LoRaWAN-LBM MCU Component
 
-![tag](https://img.shields.io/badge/tag-v1.0.1-brightgreen.svg)
+![tag](https://img.shields.io/badge/tag-v1.1.0-brightgreen.svg)
 
 ## Overview
 

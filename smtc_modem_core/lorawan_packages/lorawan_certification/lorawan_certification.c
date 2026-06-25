@@ -1017,7 +1017,7 @@ static void lorawan_certification_build_beacon_rx_status_ind( lorawan_certificat
                                                               int8_t rssi, int8_t snr, uint8_t beacon_dr,
                                                               uint32_t beacon_freq )
 {
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     smtc_beacon_statistics_t beacon_statistics;
     lorawan_api_beacon_get_statistics( &beacon_statistics, lorawan_certification->stack_id );
 
@@ -1057,7 +1057,7 @@ static void lorawan_certification_build_beacon_rx_status_ind( lorawan_certificat
     smtc_decode_beacon_gw_specific( beacon_buffer, beacon_sf,
                                     &tx_buffer[*tx_buffer_length] );  // GwSpecific 7 bytes
     *tx_buffer_length += 7;
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 }
 
 /* --- EOF ------------------------------------------------------------------ */

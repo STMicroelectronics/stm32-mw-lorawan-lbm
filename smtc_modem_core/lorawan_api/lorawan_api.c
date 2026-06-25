@@ -62,10 +62,10 @@
 #include "smtc_multicast.h"
 #endif  // SMTC_MULTICAST
 #include "lr1mac_class_c.h"
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 #include "smtc_ping_slot.h"
 #include "smtc_beacon_sniff.h"
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 #include "modem_core.h"
 #include "smtc_real.h"
 #include "smtc_secure_element.h"
@@ -80,10 +80,10 @@ static struct
     smtc_lora_cad_bt_t cad_obj[NUMBER_OF_STACKS];
     lr1mac_class_c_t class_c_obj[NUMBER_OF_STACKS];
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     smtc_lr1_beacon_t lr1_beacon_obj[NUMBER_OF_STACKS];
     smtc_ping_slot_t  ping_slot_obj[NUMBER_OF_STACKS];
-#endif  // ADD_CLASS_B
+#endif  /* LORAMAC_CLASSB_ENABLED == 1 */
 
 #if defined( SMTC_MULTICAST )
     smtc_multicast_t multicast_obj[NUMBER_OF_STACKS];
@@ -101,10 +101,10 @@ lorawan_down_metadata_t lorawan_down_metadata;
 #define real_obj lr1mac_core_context.real_obj
 #define class_c_obj lr1mac_core_context.class_c_obj
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 #define lr1_beacon_obj lr1mac_core_context.lr1_beacon_obj
 #define ping_slot_obj lr1mac_core_context.ping_slot_obj
-#endif
+#endif //( LORAMAC_CLASSB_ENABLED == 1 )
 #if defined( SMTC_MULTICAST )
 #define multicast_obj lr1mac_core_context.multicast_obj
 #endif
@@ -136,14 +136,14 @@ void lorawan_api_init( radio_planner_t* rp, uint8_t stack_id,
                          ( void ( * )( void* ) ) lr1mac_class_c_mac_rp_callback, &class_c_obj[stack_id],
                          lr1mac_downlink_callback );
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     smtc_ping_slot_init( &ping_slot_obj[stack_id], &lr1_mac_obj[stack_id], multicast_rx_sessions,
                          nb_multicast_rx_sessions, rp, RP_HOOK_ID_CLASS_B_PING_SLOT + stack_id,
                          ( void ( * )( void* ) ) smtc_ping_slot_mac_rp_callback, &ping_slot_obj[stack_id],
                          lr1mac_downlink_callback );
     smtc_beacon_sniff_init( &lr1_beacon_obj[stack_id], &ping_slot_obj[stack_id], &lr1_mac_obj[stack_id], rp,
                             RP_HOOK_ID_CLASS_B_BEACON + stack_id, lr1mac_downlink_callback );
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 }
 
 smtc_real_region_types_t lorawan_api_get_region( uint8_t stack_id )
@@ -659,10 +659,12 @@ lorawan_multicast_rc_t lorawan_api_multicast_b_get_session_status( uint8_t mc_gr
                                                                    uint8_t stack_id )
 {
     PANIC_IF_STACK_ID_TOO_HIGH( stack_id );
-#if defined( SMTC_MULTICAST ) && defined( ADD_CLASS_B )
+#if defined( SMTC_MULTICAST )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     return ( lorawan_multicast_rc_t ) smtc_ping_slot_multicast_b_get_session_status(
         &ping_slot_obj[stack_id], mc_group_id, is_session_started, waiting_beacon_to_start, freq, dr,
         ping_slot_periodicity );
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 #else
     return LORAWAN_MC_RC_ERROR_NOT_IMPLEMENTED;
 #endif
@@ -672,9 +674,10 @@ lorawan_multicast_rc_t lorawan_api_multicast_b_start_session( uint8_t mc_group_i
                                                               uint8_t ping_slot_periodicity, uint8_t stack_id )
 {
     PANIC_IF_STACK_ID_TOO_HIGH( stack_id );
-#if defined( SMTC_MULTICAST ) && defined( ADD_CLASS_B )
-    return ( lorawan_multicast_rc_t ) smtc_ping_slot_multicast_b_start_session( &ping_slot_obj[stack_id], mc_group_id,
-                                                                                freq, dr, ping_slot_periodicity );
+#if defined( SMTC_MULTICAST )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
+    return ( lorawan_multicast_rc_t ) smtc_ping_slot_multicast_b_start_session( &ping_slot_obj[stack_id], mc_group_id, freq, dr, ping_slot_periodicity );
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 #else
     return LORAWAN_MC_RC_ERROR_NOT_IMPLEMENTED;
 #endif
@@ -683,9 +686,11 @@ lorawan_multicast_rc_t lorawan_api_multicast_b_start_session( uint8_t mc_group_i
 lorawan_multicast_rc_t lorawan_api_multicast_b_stop_session( uint8_t mc_group_id, uint8_t stack_id )
 {
     PANIC_IF_STACK_ID_TOO_HIGH( stack_id );
-#if defined( SMTC_MULTICAST ) && defined( ADD_CLASS_B )
+#if defined( SMTC_MULTICAST )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     return ( lorawan_multicast_rc_t ) smtc_ping_slot_multicast_b_stop_session( &ping_slot_obj[stack_id], mc_group_id );
-#else
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
+    #else
     return LORAWAN_MC_RC_ERROR_NOT_IMPLEMENTED;
 #endif
 }
@@ -693,8 +698,10 @@ lorawan_multicast_rc_t lorawan_api_multicast_b_stop_session( uint8_t mc_group_id
 lorawan_multicast_rc_t lorawan_api_multicast_b_stop_all_sessions( uint8_t stack_id )
 {
     PANIC_IF_STACK_ID_TOO_HIGH( stack_id );
-#if defined( SMTC_MULTICAST ) && defined( ADD_CLASS_B )
+#if defined( SMTC_MULTICAST )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     return ( lorawan_multicast_rc_t ) smtc_ping_slot_multicast_b_stop_all_sessions( &ping_slot_obj[stack_id] );
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 #else
     return LORAWAN_MC_RC_ERROR_NOT_IMPLEMENTED;
 #endif
@@ -955,7 +962,7 @@ bool lorawan_api_lora_cad_bt_get_state( uint8_t stack_id )
 
 #endif // RELAY
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 void lorawan_api_class_b_enabled( bool enable, uint8_t stack_id )
 {
     PANIC_IF_STACK_ID_TOO_HIGH( stack_id );
@@ -988,7 +995,7 @@ void lorawan_api_beacon_get_statistics( smtc_beacon_statistics_t* beacon_statist
     PANIC_IF_STACK_ID_TOO_HIGH( stack_id );
     smtc_beacon_sniff_get_statistics( &lr1_beacon_obj[stack_id], beacon_statistics );
 }
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 
 status_lorawan_t lorawan_api_get_ping_slot_info_req_status( uint8_t stack_id )
 {

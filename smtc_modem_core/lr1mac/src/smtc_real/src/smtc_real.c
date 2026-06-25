@@ -3044,7 +3044,7 @@ void smtc_real_get_rx_start_time_offset_ms( smtc_real_t* real, uint8_t datarate,
             ( ( tsymbol_us * ( 1 - ( ( ( int32_t ) rx_window_symb - MIN_RX_WINDOW_SYMB ) / 2 ) ) ) / 1000 ) -
             ( int32_t ) board_delay_ms;
     }
-    SMTC_MODEM_HAL_TRACE_PRINTF_DEBUG(
-        "rx_start_target -> datarate:%d, rx_window_symb:%u, rx_offset_ms:%d, board_delay_ms:%d\n", datarate,
+    MW_LOG( TS_ON, VLEVEL_H,
+        "rx_start_target -> datarate:%d, rx_window_symb:%u, rx_offset_ms:%d, board_delay_ms:%d\r\n", datarate,
         rx_window_symb, *rx_offset_ms, board_delay_ms );
 }

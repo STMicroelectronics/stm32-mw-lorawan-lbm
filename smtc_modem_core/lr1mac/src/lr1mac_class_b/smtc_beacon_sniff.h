@@ -201,13 +201,8 @@ typedef struct smtc_lr1_beacon_s
     int32_t  dpll_error_wo_filtering;  //!< the internal digital pll phase error without filtering
     int32_t  dpll_error;               //!< the internal digital pll phase error after low pass filter
     int32_t  dpll_error_sum;           //!< the cumulative digital pll phase error after low pass filter
-#if defined (ENDNODE) || defined (ENDNODE_RELAY)
     uint32_t dpll_frequency;     //!< the digital pll frequency with a 0.1ms resolution
     uint32_t dpll_phase;         //!< the digital pll phase with a 0.1ms resolution
-#else
-    uint32_t dpll_frequency_100us;     //!< the digital pll frequency with a 0.1ms resolution
-    uint32_t dpll_phase_100us;         //!< the digital pll phase with a 0.1ms resolution
-#endif
     uint8_t  listen_beacon_rate;  //!< default value : DEFAULT_LISTEN_BEACON_RATE, referred to the explanation of this
                                   //!< default value to understood this parameter
 

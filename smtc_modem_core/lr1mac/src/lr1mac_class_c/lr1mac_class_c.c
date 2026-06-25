@@ -301,10 +301,9 @@ void lr1mac_class_c_launch( lr1mac_class_c_t* class_c_obj )
     {
         rp_task.type                  = RP_TASK_TYPE_RX_LORA;
         rp_task.launch_task_callbacks = lr1_stack_mac_rx_lora_launch_callback_for_rp;
-        MW_LOG( TS_ON, VLEVEL_M,
-                        " RXC LoRa at %u ms freq:%u, DR %u, rx timeout %d ms\r\n",
-                        (rp_task.start_time_ms - SysTimeToMs(SysTimeGet())), RX_SESSION_PARAM_CURRENT->rx_frequency, RX_SESSION_PARAM_CURRENT->rx_data_rate,
-						LR1MAC_RCX_MIN_DURATION_MS);
+        MW_LOG( TS_ON, VLEVEL_M, " RXC LoRa at %u ms freq:%u, DR %u, rx timeout %d ms\r\n",
+                (rp_task.start_time_ms - SysTimeToMs(SysTimeGet())), RX_SESSION_PARAM_CURRENT->rx_frequency, RX_SESSION_PARAM_CURRENT->rx_data_rate,
+						          LR1MAC_RCX_MIN_DURATION_MS);
     }
     else
     {

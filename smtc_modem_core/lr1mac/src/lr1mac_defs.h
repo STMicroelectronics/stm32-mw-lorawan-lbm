@@ -518,6 +518,7 @@ typedef struct lr1_mac_nvm_context_s
     uint8_t  region;
     uint8_t  certification_port_disabled;
     uint8_t  rfu[16];  // bytes reserved for future used
+	uint8_t  padding[4];  // padding bytes to align struct size to 8-bytes
     uint32_t crc;      // !! crc MUST be the last field of the structure !!
 } lr1_mac_nvm_context_t;
 

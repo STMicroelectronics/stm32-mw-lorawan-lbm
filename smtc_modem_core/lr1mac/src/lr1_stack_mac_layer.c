@@ -2497,7 +2497,7 @@ static status_lorawan_t device_time_ans_parser( lr1_stack_mac_t* lr1_mac )
     {
         lr1_mac->device_time_user_req = USER_MAC_REQ_ACKED;
 
-        SMTC_MODEM_HAL_TRACE_PRINTF(
+        MW_LOG( TS_ON, VLEVEL_M,
             "Cmd device_time_ans_parser = %x %x %x %x %x\n", lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 1],
             lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 2], lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 3],
             lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 4],
@@ -2510,7 +2510,7 @@ static status_lorawan_t device_time_ans_parser( lr1_stack_mac_t* lr1_mac )
 
         lr1_mac->fractional_second = ( uint32_t )( lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 5] * 1000 ) >> 8;
 
-        SMTC_MODEM_HAL_TRACE_PRINTF( "SecondsSinceEpoch %u, FractionalSecond %u\n", lr1_mac->seconds_since_epoch,
+        MW_LOG( TS_ON, VLEVEL_M, "SecondsSinceEpoch %u, FractionalSecond %u\n", lr1_mac->seconds_since_epoch,
                                      lr1_mac->fractional_second );
     }
     else
@@ -2535,7 +2535,7 @@ static void beacon_freq_req_parser( lr1_stack_mac_t* lr1_mac )
         lr1_mac->nwk_payload_size = 0;
         return;
     }
-    SMTC_MODEM_HAL_TRACE_PRINTF(
+    MW_LOG( TS_ON, VLEVEL_M,
         "Cmd beacon_freq_req_parser = %x %x %x %x\n", lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 1],
         lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 2], lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 3],
         lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 4] );
@@ -2560,7 +2560,7 @@ static void beacon_freq_req_parser( lr1_stack_mac_t* lr1_mac )
     if( status_ans == 0x1 )
     {
         lr1_mac->beacon_freq_hz = frequency_temp;
-        SMTC_MODEM_HAL_TRACE_PRINTF(
+        MW_LOG( TS_ON, VLEVEL_M,
             "MacBeaconFrequency %d\n",
             ( lr1_mac->beacon_freq_hz != 0 )
                 ? lr1_mac->beacon_freq_hz
@@ -2593,7 +2593,7 @@ static void ping_slot_channel_req_parser( lr1_stack_mac_t* lr1_mac )
         lr1_mac->nwk_payload_size = 0;
         return;
     }
-    SMTC_MODEM_HAL_TRACE_PRINTF(
+    MW_LOG( TS_ON, VLEVEL_M,
         " Cmd ping_slot_channel_req_parser = %x %x %x %x\n", lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 1],
         lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 2], lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 3],
         lr1_mac->nwk_payload[lr1_mac->nwk_payload_index + 4] );
@@ -2610,7 +2610,7 @@ static void ping_slot_channel_req_parser( lr1_stack_mac_t* lr1_mac )
         if( smtc_real_is_frequency_valid( lr1_mac->real, frequency_temp ) == ERRORLORAWAN )
         {
             status_ans &= 0x2;
-            SMTC_MODEM_HAL_TRACE_WARNING( "INVALID PING SLOT FREQUENCY\n" );
+            MW_LOG( TS_ON, VLEVEL_M, "INVALID PING SLOT FREQUENCY\n" );
         }
     }
 
@@ -2619,7 +2619,7 @@ static void ping_slot_channel_req_parser( lr1_stack_mac_t* lr1_mac )
     if( smtc_real_is_rx_dr_valid( lr1_mac->real, dr_temp ) == ERRORLORAWAN )
     {
         status_ans &= 0x01;
-        SMTC_MODEM_HAL_TRACE_WARNING( "INVALID PING SLOT DR\n" );
+        MW_LOG( TS_ON, VLEVEL_M, "INVALID PING SLOT DR\n" );
     }
 
     // Update the mac parameters if case of no error
@@ -2628,8 +2628,8 @@ static void ping_slot_channel_req_parser( lr1_stack_mac_t* lr1_mac )
         lr1_mac->ping_slot_freq_hz = frequency_temp;
         lr1_mac->ping_slot_dr      = dr_temp;
 
-        SMTC_MODEM_HAL_TRACE_PRINTF( "MacPingSlotDataRate = %d\n", lr1_mac->ping_slot_dr );
-        SMTC_MODEM_HAL_TRACE_PRINTF( "MacPingSlotFrequency = %d\n", lr1_mac->ping_slot_freq_hz );
+        MW_LOG( TS_ON, VLEVEL_M, "MacPingSlotDataRate = %d\n", lr1_mac->ping_slot_dr );
+        MW_LOG( TS_ON, VLEVEL_M, "MacPingSlotFrequency = %d\n", lr1_mac->ping_slot_freq_hz );
     }
 
     lr1_mac->nwk_payload_index += PING_SLOT_CHANNEL_REQ_SIZE;
@@ -2671,7 +2671,7 @@ static status_lorawan_t ping_slot_info_ans_parser( lr1_stack_mac_t* lr1_mac )
     if( lr1_mac->ping_slot_info_user_req == USER_MAC_REQ_SENT )
     {
         lr1_mac->ping_slot_info_user_req = USER_MAC_REQ_ACKED;
-        SMTC_MODEM_HAL_TRACE_PRINTF( " PingSlotInfoAns\n" );
+        MW_LOG( TS_ON, VLEVEL_M, " PingSlotInfoAns\n" );
     }
     else
     {

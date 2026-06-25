@@ -1723,13 +1723,13 @@ smtc_modem_return_code_t smtc_modem_get_class( uint8_t stack_id, smtc_modem_clas
         *lorawan_class = SMTC_MODEM_CLASS_C;
     }
     else
-#ifdef ADD_CLASS_B
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
         if( lorawan_api_class_b_enabled_get( stack_id ) )
     {
         *lorawan_class = SMTC_MODEM_CLASS_B;
     }
     else
-#endif  // ADD_CLASS_B
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
     {
         *lorawan_class = SMTC_MODEM_CLASS_A;
     }
@@ -1749,23 +1749,23 @@ smtc_modem_return_code_t smtc_modem_set_class( uint8_t stack_id, smtc_modem_clas
     switch( lorawan_class )
     {
     case SMTC_MODEM_CLASS_A: {
-#ifdef ADD_CLASS_B
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
         lorawan_class_b_management_enable( stack_id, false, 0 );
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
         lorawan_api_class_c_enabled( false, stack_id );
         break;
     }
-#ifdef ADD_CLASS_B
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
     case SMTC_MODEM_CLASS_B: {
         lorawan_api_class_c_enabled( false, stack_id );
         lorawan_class_b_management_enable( stack_id, true, 0 );
         break;
     }
-#endif  // ADD_CLASS_B
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
     case SMTC_MODEM_CLASS_C: {
-#ifdef ADD_CLASS_B
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
         lorawan_class_b_management_enable( stack_id, false, 0 );
-#endif  // ADD_CLASS_B
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
         lorawan_api_class_c_enabled( true, stack_id );
         break;
     }

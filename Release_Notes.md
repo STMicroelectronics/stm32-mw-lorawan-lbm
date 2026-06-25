@@ -13,6 +13,39 @@ This Middleware provides the LBM implementation of the LoRaWAN® Stack. It is ba
 
 # Update History
 
+<label for="collapse-section4" aria-hidden="true">__V1.1.0 / 05-May-2026__</label>
+<div>
+
+## Main Changes
+
+- Feature: Added Class B support for End Device and Relay
+
+## Known limitations:
+
+- ABP Activation mode is not supported
+- Multicast service is not fully supported
+- FUOTA is not supported
+- LR-FHSS is not supported
+
+</div>
+
+<label for="collapse-section3" aria-hidden="true">__V1.0.2 / 03-Feb-2026__</label>
+<div>
+
+## Main Changes
+
+- Fix: Add padding bytes to avoid struct misalignment 
+
+## Known limitations:
+
+- ABP Activation mode is not supported
+- Multicast service is not fully supported
+- FUOTA is not supported
+- LR-FHSS is not supported
+- Class B is not supported
+
+</div>
+
 <label for="collapse-section2" aria-hidden="true">__V1.0.1 / 19-Dec-2025__</label>
 <div>
 

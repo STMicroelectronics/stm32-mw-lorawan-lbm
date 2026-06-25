@@ -61,9 +61,9 @@ extern "C" {
 #include "lr1mac_defs.h"
 #include "lr1_stack_mac_layer.h"
 #include "smtc_real_defs.h"
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 #include "smtc_beacon_sniff.h"
-#endif
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 #include "radio_planner.h"
 #include "fifo_ctrl.h"
 
@@ -1052,14 +1052,14 @@ void lorawan_api_beacon_sniff_start( uint8_t stack_id );
  */
 void lorawan_api_beacon_sniff_stop( uint8_t stack_id );
 
-#if defined( ADD_CLASS_B )
+#if ( LORAMAC_CLASSB_ENABLED == 1 )
 /**
  * @brief Get the beacon metadata
  *
  * @param [out] beacon_statistics The beacon statistics
  */
 void lorawan_api_beacon_get_statistics( smtc_beacon_statistics_t* beacon_statistics, uint8_t stack_id );
-#endif  // ADD_CLASS_B
+#endif /* LORAMAC_CLASSB_ENABLED == 1 */
 
 /**
  * @brief Get Ping Slot Info Request status
